@@ -1,2 +1,2 @@
 # amav
-The variety of software required to autonomously complete the AMAV competition 
+Some of the software required to autonomously complete the AMAV competition 
