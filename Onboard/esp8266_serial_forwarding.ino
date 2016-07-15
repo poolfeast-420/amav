@@ -1,7 +1,3 @@
-//**** Using a Teensy 3.1 to Connect an ESP8266 to PC USB Serial *******
-//     Compiled with Arduino 1.60 and Teensyduino 1.21b6
-//     ESP8266 Firmware: AT21SDK95-2015-01-24.bin
-
 #define wifi_serial Serial2
 #define usb_serial Serial
 
