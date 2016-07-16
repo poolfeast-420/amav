@@ -1,7 +1,7 @@
 #define wifi_serial Serial2
 #define usb_serial Serial
 
-boolean usb = false;
+boolean usb_connected = false;
 long LED_TimeOn=0;
 
 void setup() {
@@ -9,25 +9,46 @@ void setup() {
   digitalWrite(13, HIGH);
 
   // Try computer to Teensy serial
-  if (!bitRead(USB0_OTGSTAT,5)) { // Determine if usb is connected
-    usb = true; // Go into usb if connected to computer
+  if (!bitRead(USB0_OTGSTAT,5)) { // Determine if usb_serial is connected
+    usb_connected = true; // Debug to usb if connected to computer
     usb_serial.begin(115200);
     while (!usb_serial); // Wait for serial to connect
-    usb_serial.println("USB serial connected");
+    usb_serial.println("Usb serial started");
   }
   
-  // Setup Teensy to ESP8266 serial
+  // Setup Teensy to ESP8266 serial and wifi forwarding
   pinMode(16, INPUT);
   if (digitalRead(16)) { // Determine if wifi is on
     wifi_serial.begin(115200);
     while (!wifi_serial); // Wait for wifi serial
-    if (usb) usb_serial.println("Wifi on");
-    wifi_serial.println("AT+CIFSR"); // Get IP
+    
+    wifi_serial.println("ATE0"); // Disable echo
+    wifi_serial.readStringUntil('OK'); // Wait for confirmation
+    wifi_serial.println("AT+CIPMODE=1"); // Change transmission mode
+    wifi_serial.readStringUntil('OK'); // Wait for confirmation
+    if (usb_connected) usb_serial.println("Wifi configured");
+    
+    wifi_serial.println("AT+CIPSTATUS"); // Request connection status
+    String connection_response = wifi_serial.readStringUntil('OK'); // Get connection status
+    String connection_status = connection_response.charAt(connection_response.indexOf('STATUS:') + 1); // Extract status number
+    if (usb_connected) usb_serial.println("Wifi status: " + connection_status);
+    
+    if (connection_status != 3) {
+      if (connection_status == 2 || connection_status == 4) {
+        if (usb_connected) usb_serial.println("Wifi not connected to server");
+        wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.2\",9999"); // Connect to server
+        wifi_serial.readStringUntil('OK'); // Wait for confirmation
+      } else {
+        if (usb_connected) usb_serial.println("Wifi not connected to network");
+      }
+    } else {
+      if (usb_connected) usb_serial.println("Wifi connected to server");
+    }  
   } else {
-    if (usb) usb_serial.println("Wifi not working");
+    if (usb_connected) usb_serial.println("Wifi not working");
   }
   
-  if (usb) usb_serial.println("Setup complete");
+  if (usb_connected) usb_serial.println("Setup complete");
   
   digitalWrite(13, LOW); // Turn off LED
 }
