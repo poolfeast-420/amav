@@ -23,7 +23,7 @@ void setup() {
     wifi_serial.begin(115200);
     while (!wifi_serial); // Wait for wifi serial
 
-    wifi_serial.print("+++".trim()); // End previous tranmission (DOESNT WORK EITHER)
+    wifi_serial.print("+++"); // End previous tranmission (DOESNT WORK EITHER)
     wifi_serial.println("ATE0"); // Disable echo
     wifi_serial.readStringUntil('OK'); // Wait for confirmation
     wifi_serial.println("AT+CIPMODE=1"); // Change transmission mode
@@ -39,7 +39,7 @@ void setup() {
       if (usb_connected) usb_serial.println("Connecting to network...");
       // For some reason leaving a delay here does not allow the wifi to connect?
       wifi_serial.setTimeout(10000); // Allow 10 seconds
-      wifi_serial.find("CONNECTED".trim()); // THIS DOESNT WORK
+      wifi_serial.find("CONNECTED"); // THIS DOESNT WORK
     }
     
     while ((connection_status == 2 || connection_status == 4) && !wifi_serial.findUntil("OK","ERROR")) { // Wifi is not connected to server
