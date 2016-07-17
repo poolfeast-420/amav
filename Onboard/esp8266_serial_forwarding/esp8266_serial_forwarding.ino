@@ -19,9 +19,11 @@ void setup() {
   // Setup Teensy to ESP8266 serial and wifi forwarding
   pinMode(16, INPUT);
   if (digitalRead(16)) { // Determine if wifi is on
+    delay(4000); // Allow time to connect to network (WOULD LIKE TO REMOVE)
     wifi_serial.begin(115200);
     while (!wifi_serial); // Wait for wifi serial
-    
+
+    wifi_serial.print("+++".trim()); // End previous tranmission (DOESNT WORK EITHER)
     wifi_serial.println("ATE0"); // Disable echo
     wifi_serial.readStringUntil('OK'); // Wait for confirmation
     wifi_serial.println("AT+CIPMODE=1"); // Change transmission mode
@@ -33,14 +35,17 @@ void setup() {
     String connection_status = connection_response.charAt(connection_response.indexOf('STATUS:') + 1); // Extract status number
     if (usb_connected) usb_serial.println("Wifi status: " + connection_status);
 
-    if (connection_status != 2 && connection_status != 3 && connection_status != 4) {
-      while (!wifi_serial.findUntil("GOT IP","\r\n")); // Wait for wifi to autoconnect
+    if (connection_status == 1 || connection_status == 5) { // Wifi is disconnected from lan
+      if (usb_connected) usb_serial.println("Connecting to network...");
+      // For some reason leaving a delay here does not allow the wifi to connect?
+      wifi_serial.setTimeout(10000); // Allow 10 seconds
+      wifi_serial.find("CONNECTED".trim()); // THIS DOESNT WORK
     }
     
-    while ((connection_status == 2 || connection_status == 4) && !wifi_serial.findUntil("OK","ERROR")) {
+    while ((connection_status == 2 || connection_status == 4) && !wifi_serial.findUntil("OK","ERROR")) { // Wifi is not connected to server
       if (usb_connected) usb_serial.println("Connecting to server...");
       wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.2\",9999"); // Connect to server
-      delay(3000);
+      delay(2000);
     }
     if (usb_connected) usb_serial.println("Wifi connected to server");
 
@@ -52,7 +57,7 @@ void setup() {
     if (usb_connected) usb_serial.println("Wifi not working");
   }
   
-  if (usb_connected) usb_serial.println("Setup complete");
+  if (usb_connected) usb_serial.println("Setup finished");
   digitalWrite(13, LOW); // Turn off LED
 }
 
