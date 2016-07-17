@@ -32,24 +32,27 @@ void setup() {
     String connection_response = wifi_serial.readStringUntil('OK'); // Get connection status
     String connection_status = connection_response.charAt(connection_response.indexOf('STATUS:') + 1); // Extract status number
     if (usb_connected) usb_serial.println("Wifi status: " + connection_status);
+
+    if (connection_status != 2 && connection_status != 3 && connection_status != 4) {
+      while (!wifi_serial.findUntil("GOT IP","\r\n")); // Wait for wifi to autoconnect
+    }
     
-    if (connection_status != 3) {
-      if (connection_status == 2 || connection_status == 4) {
-        if (usb_connected) usb_serial.println("Wifi not connected to server");
-        wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.2\",9999"); // Connect to server
-        wifi_serial.readStringUntil('OK'); // Wait for confirmation
-      } else {
-        if (usb_connected) usb_serial.println("Wifi not connected to network");
-      }
-    } else {
-      if (usb_connected) usb_serial.println("Wifi connected to server");
-    }  
+    while ((connection_status == 2 || connection_status == 4) && !wifi_serial.findUntil("OK","ERROR")) {
+      if (usb_connected) usb_serial.println("Connecting to server...");
+      wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.2\",9999"); // Connect to server
+      delay(3000);
+    }
+    if (usb_connected) usb_serial.println("Wifi connected to server");
+
+    wifi_serial.println("AT+CIPSEND"); // Start transmission
+    wifi_serial.readStringUntil('>'); // Wait for confirmation, all data sent to wifi serial is now forwarded
+    if (usb_connected) usb_serial.println("Wifi setup complete");
+    wifi_serial.println("test packet pls ignore"); // Test connection
   } else {
     if (usb_connected) usb_serial.println("Wifi not working");
   }
   
   if (usb_connected) usb_serial.println("Setup complete");
-  
   digitalWrite(13, LOW); // Turn off LED
 }
 
