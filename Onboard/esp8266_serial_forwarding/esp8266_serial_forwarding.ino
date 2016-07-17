@@ -4,6 +4,16 @@
 boolean usb_connected = false;
 long LED_TimeOn=0;
 
+void error() {
+  if (usb_connected) usb_serial.println("oh no");
+  while (true) {
+    digitalWrite(13, HIGH);   // set the LED on
+    delay(600);
+    digitalWrite(13, LOW);    // set the LED off
+    delay(600);
+  }
+}
+
 void setup() {
   pinMode(13, OUTPUT); // Turn on LED
   digitalWrite(13, HIGH);
@@ -19,15 +29,15 @@ void setup() {
   // Setup Teensy to ESP8266 serial and wifi forwarding
   pinMode(16, INPUT);
   if (digitalRead(16)) { // Determine if wifi is on
-    delay(4000); // Allow time to connect to network (WOULD LIKE TO REMOVE)
+    delay(6000); // Allow time to connect to network (only works here) (WOULD LIKE TO REMOVE)
     wifi_serial.begin(115200);
     while (!wifi_serial); // Wait for wifi serial
 
     wifi_serial.print("+++"); // End previous tranmission (DOESNT WORK EITHER)
     wifi_serial.println("ATE0"); // Disable echo
-    wifi_serial.readStringUntil('OK'); // Wait for confirmation
+    if (!wifi_serial.findUntil("OK","ERROR")) error(); // Wait for confirmation
     wifi_serial.println("AT+CIPMODE=1"); // Change transmission mode
-    wifi_serial.readStringUntil('OK'); // Wait for confirmation
+    if (!wifi_serial.findUntil("OK","ERROR")) error(); // Wait for confirmation
     if (usb_connected) usb_serial.println("Wifi configured");
     
     wifi_serial.println("AT+CIPSTATUS"); // Request connection status
@@ -39,8 +49,9 @@ void setup() {
       if (usb_connected) usb_serial.println("Connecting to network...");
       // For some reason leaving a delay here does not allow the wifi to connect?
       wifi_serial.setTimeout(10000); // Allow 10 seconds
-      wifi_serial.find("CONNECTED"); // THIS DOESNT WORK
+      wifi_serial.find("WIFI GOT IP"); // THIS DOESNT WORK
     }
+    if (usb_connected) usb_serial.println("Wifi connected to network");
     
     while ((connection_status == 2 || connection_status == 4) && !wifi_serial.findUntil("OK","ERROR")) { // Wifi is not connected to server
       if (usb_connected) usb_serial.println("Connecting to server...");
@@ -50,11 +61,9 @@ void setup() {
     if (usb_connected) usb_serial.println("Wifi connected to server");
 
     wifi_serial.println("AT+CIPSEND"); // Start transmission
-    wifi_serial.readStringUntil('>'); // Wait for confirmation, all data sent to wifi serial is now forwarded
+    if (!wifi_serial.findUntil(">","ERROR")) error(); // Wait for confirmation, all data sent to wifi serial is now forwarded
     if (usb_connected) usb_serial.println("Wifi setup complete");
     wifi_serial.println("test packet pls ignore"); // Test connection
-  } else {
-    if (usb_connected) usb_serial.println("Wifi not working");
   }
   
   if (usb_connected) usb_serial.println("Setup finished");
@@ -77,7 +86,7 @@ void loop() {
   }
 
   // Turn off LED after a period of time
-  if (millis() - LED_TimeOn > 20) {
+  if (millis() - LED_TimeOn > 15) {
     digitalWriteFast(13, LOW);   // set the LED off
   }
 }
