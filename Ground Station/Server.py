@@ -1,13 +1,18 @@
 import socket
 
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-socket.bind(("", 8080))
+socket.bind(("", 8081))
 socket.listen()
 
 while True:
     connection, address = socket.accept()
     while True:
-        message = ""
-        while message is None or not '\n' in message:
-            message += connection.recv(1).decode() # It's probably dumb to recieve one byte at a time
-        connection.send(message.encode())
+        size = connection.recv(4).decode()
+        print(size)
+        message = connection.recv(size).decode()
+        send_message(connection, message)
+        print(message)
+
+def send_message(connection, message):
+    message = str(len(message.encode())).zfill(4) + message
+    connection.sendall(message)
