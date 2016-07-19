@@ -47,13 +47,13 @@ void setup() {
   // Setup Teensy to ESP8266 serial and wifi forwarding
   pinMode(16, INPUT);
   if (digitalRead(16)) { // Determine if wifi is on
-
+    log("Waiting for wlan to connect");
     delay(6000); // Allow time to connect to network (only works here) (WOULD LIKE TO REMOVE)
     wifi_serial.begin(115200);
     while (!wifi_serial); // Wait for wifi serial
 
     // Send parameters
-    wifi_serial.print("+++"); // End previous tranmission (DOESNT WORK EITHER)
+    wifi_serial.write("+++"); // End previous tranmission (DOESNT WORK EITHER)
     wifi_serial.println("ATE0"); // Disable echo
     if (!wifi_serial.findUntil("OK", "ERROR")) error(); // Wait for confirmation
     wifi_serial.println("AT+CIPMODE=1"); // Change transmission mode
@@ -77,15 +77,15 @@ void setup() {
     // Connect wifi to server if not already
     while ((connection_status == 2 || connection_status == 4) && !wifi_serial.findUntil("OK", "ERROR")) { // Wifi is not connected to server
       log("Connecting to server...");
-      wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.2\",9999"); // Connect to server
+      wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.4\",8080"); // Connect to server
       delay(2000);
     }
     log("Wifi connected to server");
-
+    
     // Tell wifi to continuously send all recieved serial
     wifi_serial.println("AT+CIPSEND"); // Start transmission
     if (!wifi_serial.findUntil(">", "ERROR")) error(); // Wait for confirmation
-
+    
     log("Wifi setup complete");
     wifi_serial.println("test packet pls ignore"); // Test connection
 
