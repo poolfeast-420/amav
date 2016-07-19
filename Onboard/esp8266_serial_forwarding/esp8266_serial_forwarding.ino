@@ -2,12 +2,19 @@
 #define usb_serial Serial
 
 // Format message with header that describes its size
-void send_message(String message) {
-  if (wifi_serial) {
-    message = printf("%04d", message.length()) + message;
+void wifi_encode_and_send(String message) {
+    wifi_serial.printf("%04d", message.length());
     wifi_serial.print(message);
-  }
 }
+
+// Decode a formated message with header that describes its size
+String wifi_decode_and_recieve() {
+  char *buffer[4];
+  wifi_serial.readBytes(buffer[0], 4);
+  log(buffer[0]);
+  // char *output[9999];
+  // wifi_serial.readBytes(output[0], buffer[0]);
+ }
 
 // Called if something goes wrong
 void error() {
@@ -52,8 +59,6 @@ void setup() {
     log("Usb serial started");
   }
   
-  log(printf("%03d", 45));
-  
   // Setup Teensy to ESP8266 serial and wifi forwarding
   pinMode(16, INPUT);
   if (digitalRead(16)) { // Determine if wifi is on
@@ -61,9 +66,9 @@ void setup() {
     delay(6000); // Allow time to connect to network (only works here) (WOULD LIKE TO REMOVE)
     wifi_serial.begin(115200);
     while (!wifi_serial); // Wait for wifi serial
-    log("Usb serial started");
+    
     // Send parameters
-    wifi_serial.write("+++"); // End previous tranmission (DOESNT WORK EITHER)
+    wifi_serial.write('+++'); // End previous tranmission (DOESNT WORK EITHER)
     wifi_serial.println("ATE0"); // Disable echo
     if (!wifi_serial.findUntil("OK", "ERROR")) error(); // Wait for confirmation
     wifi_serial.println("AT+CIPMODE=1"); // Change transmission mode
@@ -97,7 +102,13 @@ void setup() {
     if (!wifi_serial.findUntil(">", "ERROR")) error(); // Wait for confirmation
     
     log("Wifi setup complete");
-    send_message("test packet pls ignore"); // Test connection
+    wifi_encode_and_send("test packet pls ignore"); // Test connection
+    delay(1000);
+    wifi_encode_and_send("test packet ignore if you want");
+    delay(2000);
+    wifi_encode_and_send("test packet <-- this is a lie");
+    delay(3000);
+    wifi_encode_and_send("real packet please take note");
 
   }
   else { // Wifi is not on/attached
@@ -115,14 +126,14 @@ void loop() {
   if ( wifi_serial.available() ) {
     digitalWriteFast(13, HIGH);   // set the LED on
     LED_TimeOn = millis();
-    usb_serial.write( wifi_serial.read() );
+    usb_serial.write( wifi_decode_and_recieve() );
   }
 
   // Send bytes from Computer -> Teensy back to ESP8266
   if ( usb_serial.available() ) {
     digitalWriteFast(13, HIGH);   // set the LED on
     LED_TimeOn = millis();
-    wifi_serial.write( usb_serial.read() );
+    wifi_encode_and_send( usb_serial.read() ); // NOT WORKING ALSO MORE DATATYPE STUFF
   }
 
   // Turn off LED after a period of time
