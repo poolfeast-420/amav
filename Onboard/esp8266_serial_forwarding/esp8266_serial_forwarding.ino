@@ -92,7 +92,7 @@ void setup() {
     // Connect wifi to server if not already
     while ((connection_status == 2 || connection_status == 4) && !wifi_serial.findUntil("OK", "ERROR")) { // Wifi is not connected to server
       log("Connecting to server...");
-      wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.4\",8080"); // Connect to server
+      wifi_serial.println("AT+CIPSTART=\"TCP\",\"192.168.0.4\",9999"); // Connect to server
       delay(2000);
     }
     log("Wifi connected to server");
@@ -126,7 +126,7 @@ void loop() {
   if ( wifi_serial.available() ) {
     digitalWriteFast(13, HIGH);   // set the LED on
     LED_TimeOn = millis();
-    usb_serial.write( wifi_decode_and_recieve() );
+    usb_serial.write( wifi_serial.read() );
   }
 
   // Send bytes from Computer -> Teensy back to ESP8266

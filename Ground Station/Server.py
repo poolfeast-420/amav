@@ -1,8 +1,9 @@
 import socket
+from time import sleep
 
 socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-socket.bind(("", 8080))
-socket.listen()
+socket.bind(("", 9999))
+socket.listen(1)
 
 def send_message(connection, message):
     # This function prefixes the message length
@@ -11,9 +12,13 @@ def send_message(connection, message):
     connection.send(message.encode())
 
 while True:
+    print("Waiting for connection")
     connection, address = socket.accept()
+    connection.setblocking(0)
     while True:
-        size = int(connection.recv(4).decode())
-        message = connection.recv(size).decode()
-        print("Recieved message reads: " + message)
-        send_message(connection, message)
+        try:
+            message = connection.recv(int(connection.recv(4).decode())).decode()
+            print( "Recieved message reads: " + message)
+            send_message( connection, message)
+        except Exception:
+            pass
