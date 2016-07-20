@@ -15,10 +15,13 @@ while True:
     print("Waiting for connection")
     connection, address = socket.accept()
     connection.setblocking(0)
+    previous_error = None
     while True:
         try:
             message = connection.recv(int(connection.recv(4).decode())).decode()
             print( "Recieved message reads: " + message)
             send_message( connection, message)
-        except Exception:
-            pass
+        except Exception as error:
+            if not str(error) == previous_error:
+                previous_error = str(error)              
+                print(error)
