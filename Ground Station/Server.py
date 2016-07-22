@@ -3,7 +3,7 @@ from errno import *
 from multiprocessing import Process, Manager, SimpleQueue
 
 class Server(Process):
-    """ Handles receiving and sending """
+    """ Handles receiving and sending over network """
 
     def __init__(self, send_queue, recv_queue, port=9999):
         Process.__init__(self)
@@ -14,32 +14,28 @@ class Server(Process):
         self.socket.listen(1)
 
     def run(self):
-        while True:
-            # Main loop for server
+        while True: # Main loop for server
             print("Waiting for connection")
-            connection, address = self.socket.accept()
+            connection, address = self.socket.accept() # blocks until connection starts
             print("Connection established")
             connection.setblocking(0)
-            previous_error = None
             while True:
                 try:
-                    if not self.send_queue.empty():
+                    if not self.send_queue.empty(): # If their is something to send
                         message = self.send_queue.get()
-                        message = str(len(message.encode())).zfill(4) + message
+                        message = str(len(message.encode())).zfill(4) + message # Prefix four digit byte amount
                         connection.send(message.encode())
-                    size_prefix = connection.recv(4).decode()
-                    if size_prefix == '': # Disconnected
+                        print("Sent message")
+                    size_prefix = connection.recv(4).decode() # Recieve four bytes
+                    if size_prefix == '': # If disconnected
                         break
-                    if size_prefix: # If message was sent
+                    if size_prefix: # If message was recieved
                         self.recv_queue.put(connection.recv(int(size_prefix)).decode())
                         print("Recieved message")
                 except Exception as error:
-                    # Remove error messages due to non-blocking
-                    if error.errno != EWOULDBLOCK:
-                        # Remove duplicate errors
-                        if not error.errno == previous_error:
-                            previous_error = error.errno
-                            print(error)
+                    if error.errno != EWOULDBLOCK: # Remove error messages due to non-blocking
+                        print(error)
+
 
 # Setup process stuff
 
