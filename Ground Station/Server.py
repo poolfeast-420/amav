@@ -14,8 +14,8 @@ class Server(Process):
         self.socket.listen(1)
 
     def run(self):
-        # Main loop for server
         while True:
+            # Main loop for server
             print("Waiting for connection")
             connection, address = self.socket.accept()
             print("Connection established")
@@ -27,22 +27,19 @@ class Server(Process):
                         message = self.send_queue.get()
                         message = str(len(message.encode())).zfill(4) + message
                         connection.send(message.encode())
-                    # Recieve four bytes of message first, and interpret them as the size of the remaining message
-                    self.recv_queue.put(connection.recv(int(connection.recv(4).decode())).decode())
-                    print("Recieved message")
+                    size_prefix = connection.recv(4).decode()
+                    if size_prefix == '': # Disconnected
+                        break
+                    if size_prefix: # If message was sent
+                        self.recv_queue.put(connection.recv(int(size_prefix)).decode())
+                        print("Recieved message")
                 except Exception as error:
-                    if hasattr(error, 'errno'):
-                        # Remove error messages due to non-blocking
-                        if error.errno != EWOULDBLOCK:
-                            # Remove duplicate errors
-                            if not error.errno == previous_error:
-                                previous_error = error.errno
-                                print(error)
-                        # Disconnect if connection is broken
-                        if error.errno == ECONNRESET or error.errno == ECONNABORTED:
-                            print("Connection removed")
-                            connection.shutdown(0)
-                            break
+                    # Remove error messages due to non-blocking
+                    if error.errno != EWOULDBLOCK:
+                        # Remove duplicate errors
+                        if not error.errno == previous_error:
+                            previous_error = error.errno
+                            print(error)
 
 # Setup process stuff
 
@@ -52,6 +49,6 @@ send_queue = SimpleQueue()
 server = Server(send_queue, recv_queue)
 server.start()
 
-send_queue.put("mayonaise")
-
-server.join()
+while True:
+    send_queue.put("mayonaise")
+    print(recv_queue.get())
