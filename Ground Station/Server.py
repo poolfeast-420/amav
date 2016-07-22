@@ -1,6 +1,7 @@
 import socket
 from errno import *
 from multiprocessing import Process, Manager
+from multiprocessing.queues import SimpleQueue
 
 class Server(Process):
     """ Handles receiving and sending """
@@ -23,12 +24,13 @@ class Server(Process):
             previous_error = None
             while True:
                 try:
+                    if not self.send_queue.empty():
+                        message = self.send_queue.get()
+                        message = str(len(message.encode())).zfill(4) + message
+                        connection.send(message.encode())
                     # Recieve four bytes of message first, and interpret them as the size of the remaining message
-                    recv_queue.append(connection.recv(int(connection.recv(4).decode())).decode())
+                    self.recv_queue.put(connection.recv(int(connection.recv(4).decode())).decode())
                     print("Recieved message")
-                    message = send.queue.pop(0)
-                    message = str(len(message.encode())).zfill(4) + message
-                    connection.send(message.encode())
                 except Exception as error:
                     # Remove error messages due to non-blocking
                     if error.errno != EWOULDBLOCK: 
@@ -37,17 +39,19 @@ class Server(Process):
                             previous_error = error.errno              
                             print(error)
                     # Disconnect if connection is broken
-                    if error.errno == ECONNRESET or error.errno == ECONNABORTED or error.errno == WSAECONNRESET:
+                    if error.errno == ECONNRESET or error.errno == ECONNABORTED:
                         print("Connection removed")
                         connection.shutdown(0)
                         break
 
-# init server process
-manager = Manager()
-send_queue = manager.list()
-recv_queue = manager.list()
-server = Server(send_queue, recv_queue)
+# Setup process stuff
 
+recv_queue = SimpleQueue()
+send_queue = SimpleQueue()
+
+server = Server(send_queue, recv_queue)
 server.start()
 
-send_queue.append("mayonaise")
+send_queue.put("mayonaise")
+
+server.join()
