@@ -28,6 +28,7 @@ class Server(Process):
                         print("Sent message")
                     size_prefix = connection.recv(4).decode() # Recieve four bytes
                     if size_prefix == '': # If disconnected
+                        print("Connection finished")
                         break
                     if size_prefix: # If message was recieved
                         self.recv_queue.put(connection.recv(int(size_prefix)).decode())
