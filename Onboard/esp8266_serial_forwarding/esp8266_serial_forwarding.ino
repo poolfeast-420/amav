@@ -120,14 +120,14 @@ void loop() {
   if ( wifi_serial.available() ) {
     digitalWriteFast(13, HIGH);   // set the LED on
     LED_TimeOn = millis();
-    usb_serial.write( "Recieved: " + wifi_serial.read() );
+    usb_serial.write( wifi_serial.read() );
   }
 
   // Send bytes from Computer -> Teensy back to ESP8266
   if ( usb_serial.available() ) {
     digitalWriteFast(13, HIGH);   // set the LED on
     LED_TimeOn = millis();
-    wifi_encode_and_send( usb_serial.readStringUntil('\r\n') ); // NOT WORKING ALSO MORE DATATYPE STUFF
+    wifi_serial.write( usb_serial.read() ); // NOT WORKING ALSO MORE DATATYPE STUFF
   }
 
   // Turn off LED after a period of time
